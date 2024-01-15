@@ -1,0 +1,18 @@
+@rootUrl = http://localhost:8000/api/v1
+
+@userApi = {{rootUrl}}/users
+
+
+#login user
+
+###
+POST {{userApi}}/signin
+Content-Type: application/json
+
+{
+    "email": "kisan@gmail.com",
+    "password": "Keysan04"
+}
+###
+GET {{userApi}}
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imtpc2FuQGdtYWlsLmNvbSIsImlhdCI6MTcwNTI4MDY2MiwiZXhwIjoxNzA1MjgxNTYyfQ.6HGwoo_sAA53kHlbhYp3yWY6zPd0HuuI-gQZJbZ0MRI
