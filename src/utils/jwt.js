@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-import { createNewSession } from "../modules/session/SessionSchema.js";
-import { updateUser } from "../modules/user/userModule.js";
+import { createNewSession } from "../models/session/SessionSchema.js";
+import { updateUser } from "../models/user/userModel.js";
 // create accessJWT
 export const createAccessJWT = async (email) => {
   const accessJWT = jwt.sign({ email }, process.env.ACCESSJWT_SECRET, {

@@ -1,6 +1,5 @@
-import { decode } from "jsonwebtoken";
-import { getSession } from "../modules/session/SessionSchema.js";
-import { getAUser } from "../modules/user/userModule.js";
+import { getSession } from "../models/session/SessionSchema.js";
+import { getAUser } from "../models/user/userModel.js";
 import {
   createAccessJWT,
   verifyAccessJWT,
@@ -41,22 +40,33 @@ export const adminAuth = async (req, res, next) => {
       errorCode: 401,
     });
   } catch (error) {
-    //if token is expired, handle here
+    if (error.message.includes("jwt expired")) {
+      return responder.ERROR({
+        res,
+        errorCode: 403,
+        message: "jwt expired",
+      });
+    }
+
     next(error);
   }
 };
 
 export const refreshAuth = async (req, res, next) => {
   try {
-    const { authorization } = req.headers;
-    const decoded = verifyRefreshJWT(authorization);
+    const { authorization } = req.headers; //refreshJWT
+
+    const decoded = await verifyRefreshJWT(authorization);
+
     if (decoded?.email) {
-      const user = await getUser({
+      const user = await getAUser({
         email: decoded.email,
         refreshJWT: authorization,
       });
+
       if (user?._id && user?.status === "active") {
         const accessJWT = await createAccessJWT(decoded.email);
+
         return responder.SUCCESS({
           res,
           message: "here is the accessJWT",
@@ -64,9 +74,13 @@ export const refreshAuth = async (req, res, next) => {
         });
       }
     }
+
     responder.ERROR({
       res,
-      message: "Ther is a problem with jwt",
+      errorCode: 401,
+      message: "unauthorize",
     });
-  } catch (error) {}
+  } catch (error) {
+    next(error);
+  }
 };

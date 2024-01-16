@@ -1,24 +1,31 @@
 import express from "express";
 import {
   getAUser,
+  getAdminPasswordById,
   insertUser,
   updateUser,
-} from "../modules/user/userModule.js";
+} from "../models/user/UserModel.js";
 import { comparePassword, hashPassword } from "../utils/bcrypt.js";
-import { newAdminValidation } from "../middlewares/joiValidation.js";
+import {
+  newAdminValidation,
+  resetPasswordValidation,
+} from "../middlewares/joiValidation.js";
 import { responder } from "../middlewares/response.js";
 let router = express.Router();
 import { v4 as uuidv4 } from "uuid";
 import {
   createNewSession,
   deleteSession,
-} from "../modules/session/SessionSchema.js";
+} from "../models/session/SessionSchema.js";
 import {
+  passwordUpdateNotificationEmail,
   sendEmailVerificationLinkEail,
   sendEmailVerifiedNotificationnEmail,
+  sendOtpEmail,
 } from "../utils/nodemailer.js";
 import { getJwts } from "../utils/jwt.js";
-import { adminAuth } from "../middlewares/authMiddleware.js";
+import { adminAuth, refreshAuth } from "../middlewares/authMiddleware.js";
+import { otpGenerator } from "../utils/randomGenerator.js";
 
 // pulic routers
 
@@ -162,21 +169,155 @@ router.get("/", adminAuth, (req, res, next) => {
     next(error);
   }
 });
-router.get("/getAccessJWT");
+
+router.get("/get-accessjwt", refreshAuth);
+
+///logout
 
 router.post("/logout", async (req, res, next) => {
   try {
-    const { accessJWT, refreshJWT, _id } = req.body;
+    const { accessJWT, _id } = req.body;
     accessJWT &&
       (await deleteSession({
         token: accessJWT,
       }));
 
     await updateUser({ _id }, { refreshJWT: "" });
+
     responder.SUCCESS({
       res,
-      message: "user logged out successfully",
+      message: "User loged out successfuylly",
     });
-  } catch (error) {}
+  } catch (error) {
+    next(error);
+  }
 });
+
+//otp request
+router.post("/request-otp", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (email.includes("@")) {
+      //check if user exist
+      const user = await getAUser({ email });
+
+      if (user._id) {
+        // create uniquest otp
+        const otp = otpGenerator();
+
+        // store opt and email in the session table
+        const otpSession = await createNewSession({
+          token: otp,
+          associate: email,
+        });
+        if (otpSession?._id) {
+          // send email to user
+          sendOtpEmail({
+            fName: user.fName,
+            email,
+            otp,
+          });
+        }
+      }
+    }
+
+    responder.SUCCESS({
+      res,
+      message:
+        "IF your email is found in our system, we will send otp to your email. Please check your Junk/spam folder as well",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+//password reset
+router.patch("/", resetPasswordValidation, async (req, res, next) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    // if otp is valid
+
+    const session = await deleteSession({
+      token: otp,
+      associate: email,
+    });
+
+    if (session?._id) {
+      //encryp password
+
+      const hashPass = hashPassword(password);
+
+      // update password in user table
+      const user = await updateUser({ email }, { password: hashPass });
+
+      if (user?._id) {
+        //send email notificaion
+        passwordUpdateNotificationEmail({
+          fName: user.fName,
+          email,
+        });
+
+        return responder.SUCCESS({
+          res,
+          message: "Your password has been udpate, you may login now!",
+        });
+      }
+    }
+
+    responder.ERROR({
+      res,
+      message: "Invalid token, try again later",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// password update
+
+router.patch("/password", adminAuth, async (req, res, next) => {
+  try {
+    // get user info
+    const user = req.userInfo;
+    const { oldPassword, newPassword } = req.body;
+
+    // get password from db by user _id
+    const { password } = await getAdminPasswordById(user._id);
+
+    // macth the oldPass with db pass
+    const isMatched = comparePassword(oldPassword, password);
+    // encrypt new pass
+    if (isMatched) {
+      const newHashPass = hashPassword(newPassword);
+      // update user table with new pass
+      const updatedUser = await updateUser(
+        { _id: user._id },
+        { password: newHashPass }
+      );
+
+      if (updatedUser?._id) {
+        //send email notification
+        passwordUpdateNotificationEmail({
+          fName: user.fName,
+          email: user.email,
+        });
+        return responder.SUCCESS({
+          res,
+          message: "Your password has been updated",
+        });
+      }
+    }
+
+    responder.ERROR({
+      res,
+      message: "Unable to update the password, try again later",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// profile update
+
 export default router;

@@ -37,3 +37,13 @@ export const newAdminValidation = (req, res, next) => {
 
   joiValidator({ schema, req, res, next });
 };
+
+export const resetPasswordValidation = (req, res, next) => {
+  const schema = Joi.object({
+    otp: SHORTSTRREQ,
+    email: EMAILREQ,
+    password: SHORTSTRREQ,
+  });
+
+  joiValidator({ schema, req, res, next });
+};
