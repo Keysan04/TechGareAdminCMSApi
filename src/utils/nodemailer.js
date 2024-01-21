@@ -154,3 +154,33 @@ export const passwordUpdateNotificationEmail = ({ email, fName }) => {
 
   emailSender(body);
 };
+export const profileUpdateNotificationEmail = ({ email, fName }) => {
+  const body = {
+    from: `"Tech Gare" <${process.env.SMTP_USER}>`, // sender address
+    to: email, // list of receivers
+    subject: "Your profile  has been updated", // Subject line
+    text: `Hello ${fName}, Your profile has been update. If this wasn't you. Pelase contact us or change password asap \n\n Regards, Tech Gare`, // plain text body
+    html: `
+    <p>Hello ${fName}</p>
+<br />
+<br />
+
+<p> Your password has been update. If this wasn't you. Pelase contact us or change password asap</p>
+
+ 
+<br />
+<br />
+---------
+<p>
+    Regards,
+    <br />
+    Tech gare 
+    <br />
+    www.mysite.com
+</p>
+  
+    `, // html body
+  };
+
+  emailSender(body);
+};

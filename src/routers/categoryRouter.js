@@ -8,6 +8,7 @@ import {
 } from "../models/category/CategoryModel.js";
 const router = express.Router();
 import slugify from "slugify";
+import { adminAuth } from "../middlewares/authMiddleware.js";
 
 //create new category
 router.post("/", async (req, res, next) => {
@@ -57,9 +58,10 @@ router.get("/", async (req, res, next) => {
 });
 
 //update category
-router.put("/", async (req, res, next) => {
+router.put("/", adminAuth, async (req, res, next) => {
   try {
     const { _id, title, status } = req.body;
+    console.log(_id, title, status);
     if (_id && title && status) {
       const cat = await updateCategory({ _id }, { title, status });
 

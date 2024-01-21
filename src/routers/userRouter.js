@@ -19,6 +19,7 @@ import {
 } from "../models/session/SessionSchema.js";
 import {
   passwordUpdateNotificationEmail,
+  profileUpdateNotificationEmail,
   sendEmailVerificationLinkEail,
   sendEmailVerifiedNotificationnEmail,
   sendOtpEmail,
@@ -111,6 +112,18 @@ router.post("/signin", async (req, res, next) => {
   }
 });
 
+// router.get("/randomApi", (req, res, next) => {
+//   try {
+//     console.log(res.data);
+//     responder.SUCCESS({
+//       res,
+//       message: "checkout the list of users",
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 //add server side validation
 router.post("/", newAdminValidation, async (req, res, next) => {
   try {
@@ -146,6 +159,37 @@ router.post("/", newAdminValidation, async (req, res, next) => {
           res,
           errorCode: 200,
           message: "Unable to create new user, try again later",
+        });
+  } catch (error) {
+    if (error.message.includes("E11000 duplicate key error collection")) {
+      error.errorCode = 200;
+      error.message = "There is another user, have used this email already";
+    }
+    next(error);
+  }
+});
+router.put("/update", adminAuth, async (req, res, next) => {
+  try {
+    const { _id, fName, lName, phone, address, ...rest } = req.body;
+    console.log(rest);
+    // filter, id;
+    const user = await updateUser({ _id }, { fName, lName, phone, address });
+    console.log(user);
+    //if user is created, create unique url and email that to user
+    user?._id &&
+      profileUpdateNotificationEmail({
+        email: user.email,
+        fName: user.fName,
+      });
+    user?._id
+      ? responder.SUCCESS({
+          res,
+          message: "Your profile has been updated",
+        })
+      : responder.ERROR({
+          res,
+          errorCode: 200,
+          message: "Unable to update  profile, try again later",
         });
   } catch (error) {
     if (error.message.includes("E11000 duplicate key error collection")) {

@@ -2,6 +2,7 @@
 @userApi = {{rootUrl}}/users
 @categoryAPI = {{rootUrl}}/categories
 
+@randomAPI = https://randomuser.me/api/?results=20
 # =========== user api 
 ### login user
 POST {{userApi}}/signin
@@ -12,7 +13,8 @@ Content-Type: application/json
     "password": "11111"
 }
 
-
+###
+GET {{randomAPI}}
 ### get user profile
 GET {{userApi}}
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFAYS5jb20iLCJpYXQiOjE3MDUyODAyODIsImV4cCI6MTcwNTI4MTE4Mn0.1S0h7UC3jGTizdC04BljPiLEsaQTU0Eg2L6gU7QfDCs
